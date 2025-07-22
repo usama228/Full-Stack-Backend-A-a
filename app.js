@@ -1,0 +1,64 @@
+const express = require('express');
+const sequelize = require('./config/db');
+const path = require('path');
+const userRoutes = require('./routes/userRoutes');
+const productRoutes = require('./routes/productRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const avatarRoutes = require('./routes/avatarRoutes');
+const categoryRoutes = require('./routes/categoryRoute');
+const countryRoute = require('./routes/countryRoutes');
+const helmet = require('helmet');
+const { swaggerUi, swaggerSpec } = require('./swaggerConfig');
+const cors = require('cors');
+
+
+
+const app = express();
+app.use(helmet());
+app.use(cors({
+  origin: '*',
+
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.get('/', (req, res) => {
+  res.send('Welcome to the API!');
+});
+
+
+
+// Swagger documentation route
+app.use('/soltronic', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/users', userRoutes);
+app.use('/api/images', avatarRoutes);
+app.use('/api', productRoutes);
+app.use('/api', projectRoutes);
+app.use('/api', categoryRoutes)
+app.use('/api', countryRoute)
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+app.use((err, req, res, next) => {
+  console.error('Error: ', err.stack);
+  res.status(500).json({ message: 'An internal error occurred', error: err.message });
+});
+
+
+const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  try {
+    await sequelize.sync({ force: false });
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Error syncing with the database:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
